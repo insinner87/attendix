@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendix - Attendance</title>
+  <style>
+    /* General reset and body styling */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      color: #fff; /* Default text color */
+      background: url(img.jpg) no-repeat center center fixed; /* Replace with the path to your image */
+      background-size: cover;
+      display: flex;
+      flex-direction: column; /* Stack children vertically */
+      min-height: 100vh; /* Ensure full height of the viewport */
+    }
+
+    /* Overlay for low contrast */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5); /* Darker overlay for better text contrast */
+      z-index: -1;
+    }
+
+    /* Header styles */
+    header {
+      background-color: rgba(0, 0, 0, 0.7); /* Slight transparency for the header */
+      padding: 1em 2em;
+      text-align: center;
+      position: fixed; /* Keep the header fixed at the top */
+      width: 100%;
+      z-index: 1;
+      top: -60px; /* Hide the header partially */
+      transition: top 0.4s; /* Smooth transition for showing/hiding */
+    }
+
+    header.visible {
+      top: 0; /* Show the header when active */
+    }
+
+    header h1 {
+      color: #ffda79; /* Change title color for better visibility */
+      font-size: 2.5rem;
+    }
+
+    header a {
+      text-decoration: none; /* Remove underline from link */
+      color: #ffda79; /* Color the link same as the title */
+    }
+
+    nav {
+      margin-top: 0.5em;
+      display: flex;
+      justify-content: center;
+      gap: 2em; /* Space between nav items */
+    }
+
+    nav a {
+      color: #fff; /* Keep navigation text white */
+      text-decoration: none;
+      font-weight: bold;
+      padding: 0.5em 1em; /* Padding for clickable area */
+      border-radius: 5px; /* Rounded corners */
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    nav a:hover {
+      background-color: rgba(255, 218, 121, 0.8); /* Highlight background on hover */
+      color: #333; /* Dark text on hover */
+    }
+
+    /* Main content */
+    main {
+      padding: 6em 2em 2em; /* Add top padding to avoid overlap with the fixed header */
+      text-align: center;
+      position: relative; /* Position relative for absolute notification */
+      flex: 1; /* Allow main to grow and fill available space */
+    }
+
+    /* Attendance list styles */
+    #attendance-list {
+      background-color: rgba(255, 255, 255, 0.2); /* Slightly lighter background for readability */
+      padding: 2em;
+      border-radius: 8px;
+      margin: 2em auto; /* Center the attendance list */
+      max-width: 800px; /* Limit width for readability */
+      opacity: 0; /* Start hidden for animation */
+      transform: translateY(-20px); /* Start from above */
+      transition: opacity 0.5s ease, transform 0.5s ease; /* Animation effect */
+    }
+
+    #attendance-list.visible {
+      opacity: 1; /* Fade in */
+      transform: translateY(0); /* Move to original position */
+    }
+
+    /* Notification styles */
+    .notification {
+      display: none; /* Initially hidden */
+      background-color: rgba(255, 0, 0, 0.8);
+      color: white;
+      padding: 1em;
+      margin: 1em auto;
+      border-radius: 5px;
+      max-width: 400px; /* Max width for the notification */
+      position: absolute; /* Position it above the main content */
+      top: 10%; /* Adjust top position as needed */
+      left: 50%; /* Center horizontally */
+      transform: translateX(-50%); /* Center the notification */
+      z-index: 2; /* Ensure it appears above other content */
+      transition: opacity 0.5s ease; /* Fade in effect */
+    }
+
+    /* Footer styles */
+    footer {
+      text-align: center;
+      padding: 1em; /* Consistent padding */
+      background-color: rgba(0, 0, 0, 0.7); /* Darker background */
+      color: #fff; /* White text color */
+      position: relative; /* Ensure it stays in flow of document */
+      margin-top: auto; /* Push footer to the bottom */
+    }
+  </style>
+</head>
+<body>
+  <header id="navbar">
+    <h1><a href="index.html">Attendix</a></h1>
+    <nav>
+      <a href="attendance.html">Attendance</a>
+      <a href="events.html">Events</a>
+      <a href="dashboard.html">Dashboard</a>
+    </nav>
+  </header>
+
+  <main>
+    <div id="attendance-list" class="visible">
+      <h2>Your Attendance Records</h2>
+      <ul id="attendance-items">
+        <!-- Attendance data will be populated here via JavaScript -->
+      </ul>
+    </div>
+    <div class="notification" id="attendanceNotification"></div>
+  </main>
+
+  <footer>
+    <p>&copy; 2024 Attendix. All rights reserved.</p>
+  </footer>
+
+  <script>
+    // Sample attendance data with percentages
+    const attendanceData = [
+      { subject: "Math", percentage: 85 },
+      { subject: "Chemistry", percentage: 60 },
+      { subject: "Physics", percentage: 75 },
+      { subject: "Biology", percentage: 50 }
+      // More records can be added here
+    ];
+
+    // Populate attendance records on page load
+    const populateAttendanceRecords = () => {
+      const attendanceItems = document.getElementById('attendance-items');
+      attendanceData.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = `${item.subject}: ${item.percentage}%`;
+        attendanceItems.appendChild(li);
+        
+        // Check attendance percentage for notifications
+        if (item.percentage < 70) {
+          showNotification(`${item.subject} attendance is below 70%!`);
+        }
+      });
+    };
+
+    // Function to reveal elements as they come into view
+    const revealOnScroll = () => {
+      const attendanceList = document.getElementById('attendance-list');
+      const rect = attendanceList.getBoundingClientRect();
+      if (rect.top < window.innerHeight - 50) { // Trigger when 50px is visible
+        attendanceList.classList.add('visible');
+      }
+    };
+
+    // Show notification function
+    const showNotification = (message) => {
+      const notification = document.getElementById('attendanceNotification');
+      notification.textContent = message;
+      notification.style.display = 'block'; // Show the notification
+      notification.style.opacity = 1; // Fade in
+      setTimeout(() => {
+        notification.style.opacity = 0; // Fade out after a few seconds
+        setTimeout(() => {
+          notification.style.display = 'none'; // Hide completely after fade out
+        }, 500); // Wait for fade out to finish before hiding
+      }, 3000); // Display for 3 seconds
+    };
+
+    // Navbar visibility logic
+    const navbar = document.getElementById('navbar');
+
+    const toggleNavbar = () => {
+      if (window.scrollY === 0 || navbarHover) {
+        navbar.classList.add('visible');
+      } else {
+        navbar.classList.remove('visible');
+      }
+    };
+
+    let navbarHover = false;
+
+    // Detect hover over the navbar
+    navbar.addEventListener('mouseenter', () => {
+      navbarHover = true;
+      toggleNavbar();
+    });
+
+    navbar.addEventListener('mouseleave', () => {
+      navbarHover = false;
+      toggleNavbar();
+    });
+
+    // Attach scroll event
+    window.addEventListener('scroll', toggleNavbar);
+    // Trigger on page load
+    window.addEventListener('load', toggleNavbar);
+    // Call reveal function on scroll
+    window.addEventListener('scroll', revealOnScroll);
+
+    // Call the function to populate attendance records
+    populateAttendanceRecords();
+  </script>
+</body>
+</html>
